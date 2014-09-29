@@ -73,7 +73,7 @@ def main():
         working_dir, table_name, start_date, end_date, local_tab_delimited
     )
     build_single_datafile(data_file_path, data_file, local_tab_delimited)
-    setup_vertica_table(table_name, start_date, end_date)
+    check_vertica_table(table_name)
     copy_data_into_vertica(
         table_name, data_file_path, exceptions_file, bad_data_file
     )
@@ -179,40 +179,9 @@ def vertica_table_exists(table_name):
     return True if res.fetchall() else False
 
 
-def setup_vertica_table(table_name, start_date, end_date):
-    if vertica_table_exists(table_name):
-        print "+ Table exists!"
-        print "+ Clearing vertica table '%s' of records entered after %s" % (
-            table_name, start_date
-        )
-        delete_sql = "DELETE FROM %s WHERE date >= '%s' AND date < '%s'" % (
-            table_name, start_date, end_date
-        )
-        print "SQL: " + delete_sql
-        cursor.execute(delete_sql)
-    else:
-        print "+ Table did not exists!"
-        print "+ Creating table '%s'" % (
-            table_name, start_date
-        )
-        create_table_sql = """
-        CREATE TABLE public.%s
-            (
-                _year_quarter varchar(7),
-                date varchar(10),
-                product varchar(20),
-                v_prod_major varchar(7),
-                prod_os varchar(50),
-                v_prod_os varchar(50),
-                continent_code varchar(2),
-                cntry_code varchar(2),
-                isp_name varchar(100),
-                device_type varchar(100),
-                tot_request_on_date int
-            )
-        """ % table_name
-        print "SQL: " + create_table_sql
-        cursor.execute(create_table_sql)
+def check_vertica_table(table_name):
+    if not vertica_table_exists(table_name):
+        raise Exception("%s doesn't exist!" % table_name)
 
 
 def copy_data_into_vertica(table_name, data_file_path, exceptions_file,
